@@ -1,0 +1,47 @@
+# Ambiente de DESENVOLVIMENTO. Credenciais vem do arquivo .env (copie de .env.example).
+#
+#   docker compose up -d                  -> apenas o PostgreSQL (rode a aplicacao pela IDE / ./mvnw)
+#   docker compose --profile app up -d    -> PostgreSQL + aplicacao em container
+#
+# A configuracao de producao fica em compose.prod.yml (Fase 7).
+name: ponto
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${DB_NAME:?defina DB_NAME no .env}
+      POSTGRES_USER: ${DB_USERNAME:?defina DB_USERNAME no .env}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?defina DB_PASSWORD no .env}
+      TZ: UTC
+      PGTZ: UTC
+    ports:
+      # Publicado apenas em localhost, para a aplicacao rodando fora do Docker. Nunca 0.0.0.0.
+      - "127.0.0.1:${DB_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  app:
+    profiles: ["app"]
+    build: .
+    env_file: .env
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      DB_HOST: db
+      DB_PORT: 5432
+    ports:
+      - "127.0.0.1:${SERVER_PORT:-8080}:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:

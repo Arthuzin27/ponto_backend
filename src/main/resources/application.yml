@@ -1,0 +1,148 @@
+# Configuracao base. Os valores aqui sao os padroes SEGUROS (equivalentes a producao):
+# perfis "dev" e "test" apenas relaxam o que for necessario. Segredos vem sempre de variaveis de ambiente.
+spring:
+  application:
+    name: sistema-ponto
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:10}
+      pool-name: ponto-db
+  jpa:
+    open-in-view: false
+    hibernate:
+      # O esquema e controlado exclusivamente pelo Flyway; o Hibernate apenas valida.
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    # Nunca limpar o banco automaticamente.
+    clean-disabled: true
+    validate-on-migrate: true
+  mvc:
+    problemdetails:
+      enabled: true
+  web:
+    # Mensagens de validacao e de erro sempre em portugues, independentemente do navegador.
+    locale: pt_BR
+    locale-resolver: fixed
+  messages:
+    basename: messages
+    fallback-to-system-locale: false
+
+server:
+  port: ${SERVER_PORT:8080}
+  shutdown: graceful
+  # Confia em X-Forwarded-* apenas de proxies em redes internas (RemoteIpValve do Tomcat).
+  forward-headers-strategy: native
+  error:
+    include-stacktrace: never
+    include-message: never
+    include-binding-errors: never
+    include-exception: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true
+  info:
+    env:
+      enabled: false
+
+springdoc:
+  api-docs:
+    enabled: ${APP_API_DOCS_ENABLED:false}
+  swagger-ui:
+    enabled: ${APP_API_DOCS_ENABLED:false}
+  paths-to-match: /api/**
+
+logging:
+  pattern:
+    # Inclui o identificador da requisicao (MDC) nos logs em texto.
+    correlation: "[%X{requestId:-}] "
+
+app:
+  auth:
+    # Segredo HMAC dos tokens (minimo 32 caracteres). Obrigatorio; nunca versionar.
+    jwt-secret: ${APP_JWT_SECRET}
+    token-ttl: ${APP_JWT_TTL:PT8H}
+    issuer: sistema-ponto
+    # Somente e-mails corporativos deste dominio podem ser cadastrados.
+    email-domain: ${APP_EMAIL_DOMAIN:relatar.com.br}
+    # Usado somente quando o banco nao tem nenhum usuario.
+    bootstrap-admin:
+      nome: ${APP_ADMIN_NAME:Administrador}
+      email: ${APP_ADMIN_EMAIL:}
+      senha: ${APP_ADMIN_PASSWORD:}
+  marcacao:
+    # Recusa marcacoes sem a localizacao do dispositivo (informada pelo navegador).
+    localizacao-obrigatoria: ${APP_LOCATION_REQUIRED:true}
+    # Unico local onde o ponto pode ser registrado. Exige localizacao, mesmo com a opcao acima desligada.
+    area-permitida:
+      habilitada: ${APP_AREA_ENABLED:true}
+      nome: Rua Waldemiro Alberto Hulle
+      # Distancia maxima (m) entre o aparelho e o eixo da rua.
+      tolerancia-metros: ${APP_AREA_TOLERANCE_M:60}
+      # Posicoes com incerteza maior que isso (ex.: computador sem GPS) sao recusadas.
+      precisao-maxima-metros: ${APP_AREA_MAX_ACCURACY_M:100}
+      # Eixo da rua, de ponta a ponta (OpenStreetMap, ways 219511099 e 832458173),
+      # Jefferson de Aguiar, Domingos Martins - ES. Formato "latitude,longitude".
+      tracado:
+        - "-20.3545694,-40.6560049"
+        - "-20.3546862,-40.6561149"
+        - "-20.3548509,-40.6562638"
+        - "-20.3549886,-40.6563845"
+        - "-20.3551200,-40.6565072"
+        - "-20.3552457,-40.6566285"
+        - "-20.3553765,-40.6567466"
+        - "-20.3555286,-40.6568827"
+        - "-20.3558065,-40.6571160"
+        - "-20.3559649,-40.6572515"
+        - "-20.3561202,-40.6573983"
+        - "-20.3563264,-40.6575800"
+        - "-20.3564308,-40.6576686"
+        - "-20.3565502,-40.6577732"
+        - "-20.3567030,-40.6579207"
+        - "-20.3568249,-40.6580494"
+        - "-20.3569456,-40.6581943"
+        - "-20.3570865,-40.6583619"
+        - "-20.3573888,-40.6587197"
+        - "-20.3575052,-40.6588507"
+        - "-20.3576233,-40.6589668"
+        - "-20.3579150,-40.6592497"
+    # Nome da rua a partir das coordenadas: Google Maps se houver chave, senao OpenStreetMap (Nominatim).
+    geocodificacao:
+      habilitada: ${APP_GEOCODING_ENABLED:true}
+      # Chave da Google Geocoding API (Google Cloud). Nunca versionar.
+      google-api-key: ${APP_GOOGLE_MAPS_API_KEY:}
+      nominatim-url: ${APP_NOMINATIM_URL:https://nominatim.openstreetmap.org}
+      user-agent: relatar-sistema-ponto/1.0
+      timeout: PT4S
+  # Fuso horario padrao da empresa para apresentacao e data de referencia da jornada.
+  # O armazenamento e sempre em UTC.
+  timezone: ${APP_TIMEZONE:America/Sao_Paulo}
+  cors:
+    # Lista separada por virgulas, ex.: https://ponto.relatar.com.br
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:}
+  clock:
+    ntp:
+      enabled: ${APP_NTP_CHECK_ENABLED:true}
+      server: ${APP_NTP_SERVER:a.st1.ntp.br}
+      max-offset: ${APP_NTP_MAX_OFFSET:PT1S}
+      timeout: PT2S
+      cache-ttl: PT5M

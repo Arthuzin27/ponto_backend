@@ -1,0 +1,27 @@
+# Perfil de desenvolvimento local. Le as variaveis do arquivo .env (nao versionado) na raiz do projeto.
+spring:
+  config:
+    import: optional:file:.env[.properties]
+  jpa:
+    properties:
+      hibernate:
+        format_sql: true
+
+management:
+  endpoint:
+    health:
+      show-details: always
+
+springdoc:
+  api-docs:
+    enabled: ${APP_API_DOCS_ENABLED:true}
+  swagger-ui:
+    enabled: ${APP_API_DOCS_ENABLED:true}
+
+logging:
+  level:
+    com.relatar: DEBUG
+
+app:
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:4200}

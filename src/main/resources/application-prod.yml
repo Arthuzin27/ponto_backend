@@ -1,0 +1,14 @@
+# Perfil de producao. Herda os padroes seguros do application.yml e exige todas as variaveis
+# obrigatorias (DB_NAME, DB_USERNAME, DB_PASSWORD, APP_CORS_ALLOWED_ORIGINS).
+management:
+  endpoint:
+    health:
+      show-details: never
+
+logging:
+  # Logs estruturados em JSON (Elastic Common Schema), incluindo o requestId do MDC.
+  structured:
+    format:
+      console: ${LOG_FORMAT:ecs}
+  level:
+    root: INFO
